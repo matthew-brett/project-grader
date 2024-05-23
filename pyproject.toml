@@ -3,7 +3,7 @@ requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name = "puser"
+name = "prograde"
 authors = [{name = "Matthew Brett", email = "matthew.brett@gmail.com"}]
 license = {file = "LICENSE"}
 classifiers = ["License :: OSI Approved :: BSD License",
@@ -15,6 +15,10 @@ classifiers = ["License :: OSI Approved :: BSD License",
                'Operating System :: MacOS']
 dynamic = ["version", "description"]
 description-file="README.md"
+dependencies = [
+    'git+https://github.com/matthew-brett/mcpmark',
+    'gradools'
+]
 
 [project.urls]
 Home = "https://github.com/matthew-brett/project-grader"
