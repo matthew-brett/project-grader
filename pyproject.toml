@@ -16,8 +16,8 @@ classifiers = ["License :: OSI Approved :: BSD License",
 dynamic = ["version", "description"]
 description-file="README.md"
 dependencies = [
-    'git+https://github.com/matthew-brett/mcpmark',
-    'gradools'
+    "mcpmark",
+    "gradools"
 ]
 
 [project.urls]
