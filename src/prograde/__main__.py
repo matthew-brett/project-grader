@@ -228,10 +228,13 @@ def write_feedback(config, out_path):
     m2proj = get_member2project(config['projects'])
     project_root = Path(config.get('projects_path', '.'))
     out_path = Path(out_path)
+    feedback_id_col = config.get(
+        'feedback_id_col',
+        config.get('student_id_col'))
     for user, row in class_list.iterrows():
         if not (project := m2proj.get(user)):
             continue
-        login = row[config['feedback_id_col']]
+        login = row[feedback_id_col]
         jh_user = handler.login2jh(login)
         fb_in_path = project_root / project
         fb_out_path = out_path / jh_user / 'project'
@@ -259,21 +262,62 @@ def export_marks(config, allow_missing=False):
 def get_parser():
     parser = ArgumentParser(description=__doc__,  # Usage from docstring
                             formatter_class=RawDescriptionHelpFormatter)
-    parser.add_argument('action',
-                        help='One of ' + ','.join([f"'{a}'" for a in ACTIONS]))
     parser.add_argument('--config', default='projects.yaml',
                         help='YaML configuration for course')
-    parser.add_argument('--repo-cmd',
-                        help='Command to run in repository '
-                        '(for repo-in-cmd action')
     parser.add_argument('--no-check', action='store_true',
                         help='Disable error on failed shell commands')
-    parser.add_argument('--rebase', action='store_true',
-                        help='Rebase, push on git pull')
-    parser.add_argument('--allow-missing', action='store_true',
-                        help='Whether to allow missing marks without error')
-    parser.add_argument('--feedback-out-path', default='feedback',
-                        help='Path to write feedback files')
+    noch_parser = ArgumentParser(add_help=False)
+    noch_parser.add_argument('--no-check', action='store_true',
+                            help='Disable error on failed shell commands')
+    subparsers = parser.add_subparsers(
+        dest='action',
+        title='subcommands',
+        required=True,
+        help='sub-command help')
+    subparsers.add_parser('check', help='Check config file')
+    subparsers.add_parser('report', help='List projects and members')
+    subparsers.add_parser('make-repos',
+                          help='Make project marking repositories',
+                          parents=[noch_parser])
+    pull_repos = subparsers.add_parser(
+        'pull-repos',
+        help='Make project marking repositories',
+        parents=[noch_parser])
+    pull_repos.add_argument('--rebase', action='store_true',
+                            help='Rebase, push on git pull')
+    subparsers.add_parser('add-submodules',
+                          help='Add project submodules',
+                          parents=[noch_parser])
+    cmd_in_repos = subparsers.add_parser(
+        'cmd-in-repos',
+        help='Run command in all project repositories',
+        parents=[noch_parser])
+    cmd_in_repos.add_argument('repo_cmd',
+                              help='Command to run (embed in quotes)')
+    subparsers.add_parser('write-gitignore',
+                          help='Add and commit default .gitignore',
+                          parents=[noch_parser])
+    miss_parser = ArgumentParser(add_help=False)
+    miss_parser.add_argument(
+        '--allow-missing', action='store_true',
+        help='Whether to allow missing marks without error')
+    subparsers.add_parser(
+        'write-marks',
+        help='Write project marks to .csv file',
+        parents=[miss_parser])
+    subparsers.add_parser(
+        'write-project-list',
+        help='Write project list to file')
+    subparsers.add_parser(
+        'export-marks',
+        help='Write project marks to VLE format .csv file',
+        parents=[miss_parser])
+    write_feedback = subparsers.add_parser(
+        'write-feedback',
+        help='Write feedback for upload to JupyterHub')
+    write_feedback.add_argument(
+        'feedback_out_path',
+        help='Path to write feedback files')
     return parser
 
 
@@ -297,31 +341,14 @@ def main():
         cmd_in_repos(config, args.repo_cmd, not args.no_check)
     elif args.action == 'write-gitignore':
         write_gitignore(config, not args.no_check)
-    elif args.action == 'write-marks':
-        write_marks(config, args.allow_missing)
     elif args.action == 'write-project-list':
         write_project_list(config)
-    elif args.action == 'write-feedback':
-        write_feedback(config, args.feedback_out_path)
+    elif args.action == 'write-marks':
+        write_marks(config, args.allow_missing)
     elif args.action == 'export-marks':
         export_marks(config, args.allow_missing)
-    else:
-        alist = "', '".join(ACTIONS)
-        raise RuntimeError(f"action should be in '{alist}'")
-
-
-ACTIONS = ('check',
-           'report',
-           'make-repos',
-           'pull-repos',
-           'add-submodules',
-           'cmd-in-repos',
-           'write-gitignore',
-           'write-marks',
-           'write-project-list',
-           'write-feedback',
-           'export-marks',
-          )
+    elif args.action == 'write-feedback':
+        write_feedback(config, args.feedback_out_path)
 
 
 if __name__ == '__main__':
